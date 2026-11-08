@@ -1,0 +1,44 @@
+{
+  "name": "FreeCAD MCP (Python / uv)",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
+    "ghcr.io/va-h/devcontainers-features/uv:1": {}
+  },
+
+  // Tokens come from the host environment so nothing is mounted across OSes.
+  //   GH_TOKEN:                  `gh auth token`
+  //   CLAUDE_CODE_OAUTH_TOKEN:   `claude setup-token`
+  // Set them in your shell profile / system env BEFORE launching VS Code.
+  "remoteEnv": {
+    "GH_TOKEN": "${localEnv:GH_TOKEN}",
+    "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}"
+  },
+
+  // Persists Claude Code config/login across container rebuilds.
+  // ${devcontainerId} is unique per container, so no per-project slug is needed.
+  "mounts": [
+    "source=claude-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
+  ],
+
+  "postCreateCommand": "uv sync",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "Anthropic.claude-code",
+        "streetsidesoftware.code-spell-checker"
+      ],
+      "settings": {
+        "editor.formatOnSave": false,
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python"
+      }
+    }
+  },
+
+  "remoteUser": "vscode"
+}
