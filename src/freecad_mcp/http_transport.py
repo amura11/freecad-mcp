@@ -11,6 +11,7 @@ FreeCAD, so network listeners are locked down by default:
 from __future__ import annotations
 
 import hmac
+import argparse
 import inspect
 import ipaddress
 import logging
@@ -31,6 +32,24 @@ _LOOPBACK_NAMES = ("127.0.0.1", "localhost", "::1")
 
 class UnsafeListenConfigError(ValueError):
     """Raised when the requested listener configuration would be unsafe."""
+
+
+def parse_listen_host(value: str) -> str:
+    """HTTP listeners support IPv6 independently of the IPv4 addon bridge."""
+    import validators
+    if validators.ipv4(value) or validators.ipv6(value) or validators.hostname(value):
+        return value.lower()
+    raise argparse.ArgumentTypeError("listen host must be an IP address or hostname")
+
+
+def parse_listen_port(value: str) -> int:
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("listen port must be an integer from 1 to 65535") from None
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError("listen port must be an integer from 1 to 65535")
+    return port
 
 
 def is_loopback(host: str) -> bool:
@@ -77,7 +96,7 @@ def build_allowed_hosts(
     explicitly via *extra_hosts*.
     """
     hosts = [f"localhost:{listen_port}", f"127.0.0.1:{listen_port}", f"[::1]:{listen_port}"]
-    if listen_host not in ("0.0.0.0", "::") and not is_loopback(listen_host):
+    if listen_host not in ("0.0.0.0", "::"):
         hosts.append(f"[{listen_host}]:{listen_port}" if ":" in listen_host else f"{listen_host}:{listen_port}")
     for host in extra_hosts:
         hosts.append(host if ":" in host.rpartition("]")[2] else f"{host}:{listen_port}")

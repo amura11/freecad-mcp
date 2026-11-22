@@ -36,6 +36,24 @@ and `view_name`. The global flag takes precedence over `include_screenshot`.
 See [screenshot options](tools.md#screenshot-options) for the applicable tools
 and the explicit `get_view` tool.
 
+### NVIDIA / Hyprland screenshot fallback
+
+Screenshots normally use FreeCAD's renderer, with a fallback to the active
+OpenGL viewport when the rendered image is flat. Other desktop windows are
+not captured by default.
+
+If those paths produce black or corrupted images under NVIDIA + Hyprland,
+start **FreeCAD itself** with `FREECAD_MCP_ALLOW_SCREEN_CAPTURE=1` to opt into
+the `hyprctl` / `grim` screen-capture fallback. This requires Qt 6/PySide6 and
+both commands on PATH. Bring FreeCAD's 3D view to the front and keep its viewport
+unobscured. The fallback requires a unique window matching FreeCAD's PID and
+application class, verifies the active window and capture bounds, rejects
+overlapping windows/top-layer surfaces, and checks again after capture. It does
+not raise or focus another window automatically; failed checks use the renderer.
+
+This opt-in captures composited desktop pixels. A transient overlay can race
+the checks, so leave it disabled when screen contents must remain private.
+
 ## Remote connections
 
 By default, the RPC server listens on `localhost` and does not accept remote
@@ -57,9 +75,9 @@ In the **FreeCAD MCP** toolbar:
 
 1. Check **Remote Connections**. On the next server restart, the RPC server binds
    to `0.0.0.0` (all interfaces). It only accepts connections from the IP addresses
-   or CIDR subnets configured in **Allowed IPs**, which defaults to `127.0.0.1`.
+   or IPv4 CIDR subnets configured in **Allowed IPs**, which defaults to `127.0.0.1`.
 2. Click **Configure Allowed IPs** and enter a comma-separated list of allowed
-   client IP addresses or CIDR subnets, for example:
+   client IP addresses or IPv4 CIDR subnets, for example:
 
    ```text
    192.168.1.100, 10.0.0.0/24
@@ -83,8 +101,8 @@ Pass `--host` with the IP address or hostname of the machine running FreeCAD:
 }
 ```
 
-The `--host` value is validated on startup and must be a valid IPv4/IPv6 address
-or hostname. Restart your MCP client after updating its configuration.
+The `--host` value is validated on startup and must be a valid IPv4 address
+or hostname resolving to IPv4. The addon listener does not support IPv6. Restart your MCP client after updating its configuration.
 
 `--host` selects the GUI RPC host. [Headless execution](execution.md#headless-execution)
 runs on the machine hosting the MCP server, so its file paths must be accessible

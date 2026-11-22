@@ -52,6 +52,7 @@ def test_allowed_hosts() -> None:
     assert "localhost:8000" in hosts and "127.0.0.1:8000" in hosts
     assert "0.0.0.0:8000" not in hosts
     assert "mybox:8000" in hosts and "other:9000" in hosts and "[::1]:1" in hosts
+    assert "127.5.5.5:8000" in build_allowed_hosts("127.5.5.5", 8000)
 
 
 @pytest.fixture(params=["streamable-http", "sse"])
@@ -152,3 +153,20 @@ def test_cli_insecure_remote_flag_rejected_for_stdio(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr("sys.argv", ["freecad-mcp", "--allow-insecure-remote"])
     with pytest.raises(SystemExit):
         server.main()
+
+
+@pytest.mark.parametrize("port", ["0", "-1", "65536", "invalid"])
+def test_cli_rejects_invalid_ports(monkeypatch, port: str) -> None:
+    monkeypatch.setattr("sys.argv", ["freecad-mcp", "--transport", "sse", "--listen-port", port])
+    with pytest.raises(SystemExit) as exc:
+        server.main()
+    assert exc.value.code == 2
+
+
+def test_http_can_bind_ipv6_while_addon_stays_ipv4(monkeypatch) -> None:
+    monkeypatch.setattr("sys.argv", ["freecad-mcp", "--transport", "sse", "--listen-host", "::1"])
+    calls = []
+    monkeypatch.setattr(server, "run_http", lambda *args: calls.append(args))
+    server.main()
+    assert calls[0][2] == "::1"
+    assert server.state.rpc_host == "localhost"

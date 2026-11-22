@@ -1,5 +1,7 @@
 # FreeCAD MCP
 
+<!-- mcp-name: io.github.neka-nat/freecad-mcp -->
+
 <p align="left">
  <a href="https://www.star-history.com/neka-nat/freecad-mcp">
   <picture>
@@ -62,20 +64,6 @@ Add the following entry to `claude_desktop_config.json`:
 Restart Claude Desktop to load the configuration, keep FreeCAD open with its RPC
 server running, and ask Claude to create a model. Connections use `localhost` by
 default.
-
-### Alternative: run the MCP server in Docker
-
-To keep Python and uv off your host, build the image and run it with host networking
-(Linux):
-
-```bash
-docker build -t freecad-mcp .
-docker run --rm --init --network host freecad-mcp
-```
-
-Then point your MCP client at `http://localhost:8000/mcp`. See the
-[Docker guide](docs/docker.md) for client setup, Claude Desktop, and Docker Desktop
-or bridge networking.
 
 ## Documentation
 
