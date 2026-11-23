@@ -1,0 +1,60 @@
+name: sync-upstream
+
+# Keeps the fork's main in step with neka-nat/freecad-mcp and rebuilds the
+# image when upstream brought in new commits.
+on:
+  schedule:
+    - cron: "17 5 * * *" # daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.merge.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge upstream/main
+        id: merge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/neka-nat/freecad-mcp.git
+          git fetch upstream main
+
+          before=$(git rev-parse HEAD)
+          # Fast-forward when possible; otherwise merge. A conflict fails the
+          # job so it can be resolved by hand rather than silently clobbered.
+          git merge --no-edit upstream/main
+          after=$(git rev-parse HEAD)
+
+          if [ "$before" != "$after" ]; then
+            git push origin HEAD:main
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Pushes made with GITHUB_TOKEN do not trigger other workflows, so call the
+  # image build directly when the sync actually changed something.
+  publish:
+    needs: sync
+    if: needs.sync.outputs.changed == 'true'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      ref: main
